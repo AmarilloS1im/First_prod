@@ -54,20 +54,31 @@ class Dictionary:
 # region Translation Block
 def translate_info_from_doc(file_name, user_dict):
     def translate_str(str_from_data_file, user_dict):
+        print(str_from_data_file)
         out_list = []
         list_to_translate = str_from_data_file.split('\n')
         print(list_to_translate)
         origin_list = str_from_data_file.split('\n')[:]
-        for i in range(len(list_to_translate)):
+        if len(list_to_translate) <= 1:
             for j in range(len(user_dict)):
-                list_to_translate[i] = list_to_translate[i].replace(user_dict[j][0], user_dict[j][1])
+                list_to_translate[0] = list_to_translate[0].replace(user_dict[j][0], user_dict[j][1])
             if list_to_translate != origin_list:
-                list_to_translate[i] = origin_list[i] + " / " + list_to_translate[i]
-                out_list.append(list_to_translate[i])
+                list_to_translate[0] = origin_list[0] + " / " + list_to_translate[0]
+                out_list.append(list_to_translate[0])
             else:
-                out_list.append(origin_list[i])
+                out_list.append(origin_list[0])
+        else:
+            for i in range(len(list_to_translate)):
+                for j in range(len(user_dict)):
+                    list_to_translate[i] = list_to_translate[i].replace(user_dict[j][0], user_dict[j][1])
+                if list_to_translate != origin_list:
+                    list_to_translate[i] = origin_list[i].lstrip() + " / " + list_to_translate[i]
+                    out_list.append(list_to_translate[i])
+                else:
+                    out_list.append(origin_list[i])
         print(out_list)
-        out_list = ' '.join(out_list)
+        out_list = '\n'.join(out_list)
+        print(out_list)
         return out_list
 
     uuid_name = str(uuid.uuid4())
