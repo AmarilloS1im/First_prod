@@ -86,11 +86,11 @@ def translate_info_from_doc(file_name, user_dict):
                 pass
     book.save(rf"dummy\__Translated__{uuid_dict[uuid_name]}")
     book.close()
-    if rf"dummy\{file_name}" in os.listdir('dummy\\'):
+    if file_name in os.listdir('dummy'):
         os.remove(rf"dummy\{file_name}")
-    if rf"dummy\{uuid_name}.{extension}" in os.listdir('dummy\\'):
+    if rf"{uuid_name}.{extension}" in os.listdir('dummy'):
         os.remove( rf"dummy\{uuid_name}.{extension}")
-    return rf"dummy\__Translated__{uuid_dict[uuid_name]}"
+    return rf"__Translated__{uuid_dict[uuid_name]}"
 
 
 # endregion
@@ -115,7 +115,7 @@ class FSMAdmin(StatesGroup):
 
 # region Make buttons
 translate_button = types.InlineKeyboardButton('ПЕРЕВЕСТИ', callback_data='translate_button')
-add_new_words_button = types.InlineKeyboardButton('ДОБАВИТЬ НОВЫЙ СЛОВАРЬ', callback_data='add_to_dict')
+add_new_words_button = types.InlineKeyboardButton('СЛОВАРИ', callback_data='add_to_dict')
 help_button = types.InlineKeyboardButton('ПОМОЩЬ', callback_data='help')
 markup_start_screen = types.InlineKeyboardMarkup(row_width=2)
 markup_start_screen.add(translate_button, add_new_words_button, help_button)
@@ -126,7 +126,7 @@ markup_back.add(button_back)
 
 markup_dicts = types.InlineKeyboardMarkup(row_width=1)
 main_dict_button = types.InlineKeyboardButton('СКАЧАТЬ БАЗОВЫЙ СЛОВАРЬ', callback_data='main_dict')
-custom_dict_button = types.InlineKeyboardButton('ЗАГРУЗИТЬ ПОЛЬЗОВАТЕЛЬСКИЙ СЛОВАРЬ', callback_data='set_custom_dict')
+custom_dict_button = types.InlineKeyboardButton('ДОБАВИТЬ ПОЛЬЗОВАТЕЛЬСКИЙ СЛОВАРЬ', callback_data='set_custom_dict')
 restore_main_dict_button = types.InlineKeyboardButton('УДАЛИТЬ ПОЛЬЗОВАТЕЛЬСКИЙ СЛОВОВАРЬ',
                                                       callback_data='restore_main_dict')
 markup_dicts.add(main_dict_button, custom_dict_button, restore_main_dict_button, help_button, button_back)
@@ -145,10 +145,9 @@ async def send_welcome(message: types.Message):
     user_id = message.from_user.id
     user_nikname = message.from_user.username
     user_full_name = message.from_user.full_name
-    print(f'{user_id}-----{user_full_name} {user_nikname}')
     await message.reply(
         f"Привет {user_full_name}\nЯ Translator's assistant bot\nЧтобы перевести документ нажми кнопку ПЕРЕВЕСТИ\n"
-        f"Чтобы добавить новые слова в словарь нажми кнопку ДОБАВИТЬ НОВЫЙ СЛОВАРЬ\n"
+        f"Чтобы добавить новые или изменить действующие словари нажми кнопку СЛОВАРЬ\n"
         f"Для получения более подробной информации нажми кнопку ПОМОЩЬ",
         reply_markup=markup_start_screen)
 
@@ -175,7 +174,7 @@ async def load_on_server_file_to_translate(message: types.Message, state: FSMCon
                              reply_markup=markup_back)
     else:
         user_file = message.document.file_name
-        user_unique_id = message.from_user.id
+        user_id = message.from_user.id
         user_file_extantion = '.' + message.document.file_name.split('.')[-1]
         if user_file_extantion != '.xlsx' and user_file_extantion != '.xls':
             await FSMAdmin.file_to_translate.set()
@@ -184,19 +183,18 @@ async def load_on_server_file_to_translate(message: types.Message, state: FSMCon
             await message.document.download(destination_file=rf"dummy\{user_file}")
             await message.answer('БОТ НАЧАЛ ПЕРВОД ДОКУМЕНТА, ОЖИДАЙТЕ')
             user_dict = Dictionary()
-            if rf"{user_unique_id}.csv" in os.listdir('dummy/'):
-                user_dict.set_custom_dict(rf"{user_unique_id}.csv")
+            if rf"{user_id}.csv" in os.listdir('dummy/'):
+                user_dict.set_custom_dict(rf"{user_id}.csv")
                 user_dict = user_dict.get_custom_dict()
                 translated_doc = translate_info_from_doc(user_file, user_dict)
             else:
                 user_dict = user_dict.main_dict
                 translated_doc = translate_info_from_doc(user_file, user_dict)
-            reply_translate_doc = open(translated_doc, 'rb')
+            reply_translate_doc = open(rf"dummy/{translated_doc}", 'rb')
             await message.answer('ФАЙЛ ПЕРВЕДЕН И ГОТОВ К СКАЧИВАНИЮ')
             await message.reply_document(reply_translate_doc, reply_markup=markup_next_doc)
-
             if translated_doc in os.listdir(f'dummy'):
-                os.remove(rf"dummy\{translated_doc}")
+                os.remove(rf"dummy/{translated_doc}")
             await state.finish()
 
 
@@ -295,16 +293,16 @@ async def callback_help(callback: types.CallbackQuery):
         'Количество пар(слово ; перевод) не ограниченно. ДОБАВЛЯЙТЕ КАЖДУ НОВУЮ ПАРУ СТРОЧКОЙ НИЖЕ.\n\n'
         '\t\t\t\t\t\t\t\tВНИМАНИЕ!    ATTENTION!     ACHTUNG!    \n\n'
         'ВАШ СЛОВАРЬ ДОЛЖЕН ИМЕТЬ КОДИРОВКУ "utf-8 со спецификацией"\n\n'
-        'Когда ваш словарь будет готов, загрузите его с помощью кнопки ДОБАВИТЬ '
-        'НОВЫЙ СЛОВАРЬ-->ЗАГРУЗИТЬ ПОЛЬЗОВАТЕЛЬСКИЙ СЛОВАРЬ"\n'
+        'Когда ваш словарь будет готов, загрузите его с помощью кнопки '
+        'СЛОВАРИ-->ЗАГРУЗИТЬ ПОЛЬЗОВАТЕЛЬСКИЙ СЛОВАРЬ"\n'
         'Вы также можете расширить базовый словарь путем добавления в него своих слов.\n'
-        'Для этого в разделе ДОБАВИТЬ НОВЫЙ СЛОВАРЬ нажмите кнопку СКАЧАТЬ БАЗОВЫЙ СЛОВАРЬ\n\n'
+        'Для этого в разделе СЛОВАРИ нажмите кнопку СКАЧАТЬ БАЗОВЫЙ СЛОВАРЬ\n'
         'Сохраните его себе на компьютер, добавьте в него необходимые вам слова,'
         ' после этого загрузите этот файл нажав на кноку '
-        'ДОБАВИТЬ НОВЫЙ СЛОВАРЬ-->ЗАГРУЗИТЬ ПОЛЬЗОВАТЕЛЬСКИЙ СЛОВАРЬ\n'
-        'После этого можете приступать к перводу\n'
-        'ВНИМАНИЕ!\nПри нажатии на кнопку УДАЛИТЬ ПОЛЬЗОВАТЕЛЬСКИЙ СЛОВОВАРЬ, ваш словарь будет полностью удален\n'
-        'Весь дальнейший первод будет идти на основание базового словаря ',
+        'СЛОВАРИ-->ЗАГРУЗИТЬ ПОЛЬЗОВАТЕЛЬСКИЙ СЛОВАРЬ\n'
+        'После этого можете приступать к перводу.\n\n'
+        'ВНИМАНИЕ!\nПри нажатии на кнопку УДАЛИТЬ ПОЛЬЗОВАТЕЛЬСКИЙ СЛОВОВАРЬ, ваш словарь будет полностью удален.\n'
+        'Весь дальнейший первод будет идти на основание базового словаря.',
         reply_markup=markup_back)
 
 
