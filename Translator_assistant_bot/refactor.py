@@ -89,7 +89,7 @@ def translate_info_from_doc(file_name, user_dict):
     if file_name in os.listdir('dummy'):
         os.remove(rf"dummy\{file_name}")
     if rf"{uuid_name}.{extension}" in os.listdir('dummy'):
-        os.remove( rf"dummy\{uuid_name}.{extension}")
+        os.remove(rf"dummy\{uuid_name}.{extension}")
     return rf"__Translated__{uuid_dict[uuid_name]}"
 
 
@@ -142,8 +142,6 @@ markup_next_doc.add(next_doc_button, button_back)
 # region START SCREEN
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
-    user_id = message.from_user.id
-    user_nikname = message.from_user.username
     user_full_name = message.from_user.full_name
     await message.reply(
         f"Привет {user_full_name}\nЯ Translator's assistant bot\nЧтобы перевести документ нажми кнопку ПЕРЕВЕСТИ\n"
