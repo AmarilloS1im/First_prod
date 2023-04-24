@@ -52,6 +52,16 @@ class Dictionary:
 
 
 # region Translation Block
+def russian_language_check(income_string):
+    russian_letterts_list = [chr(i).upper() + chr(i) for i in range(ord('а'),ord('я')+1)]
+    russian_letterts_list = russian_letterts_list[0:6] + ['Ёё'] + russian_letterts_list[6:]
+    russian_letterts_list = ''.join(russian_letterts_list)
+    for letter in income_string:
+        if letter in russian_letterts_list:
+            return True
+        else:
+            return False
+
 def translate_info_from_doc(file_name, user_dict):
     def translate_str(str_from_data_file, user_dict):
         out_list = []
@@ -60,6 +70,8 @@ def translate_info_from_doc(file_name, user_dict):
         for i in range(len(list_to_translate)):
             for j in range(len(user_dict)):
                 list_to_translate[i] = list_to_translate[i].replace(user_dict[j][0], user_dict[j][1])
+            if russian_language_check(list_to_translate):
+                list_to_translate = origin_list
             if list_to_translate != origin_list:
                 list_to_translate[i] = origin_list[i] + " / " + list_to_translate[i]
                 out_list.append(list_to_translate[i])
