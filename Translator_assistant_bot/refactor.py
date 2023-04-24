@@ -54,13 +54,14 @@ class Dictionary:
 # region Translation Block
 def russian_language_check(income_string):
     russian_letterts_list = [chr(i).upper() + chr(i) for i in range(ord('а'),ord('я')+1)]
-    russian_letterts_list = russian_letterts_list[0:6] + ['Ёё'] + russian_letterts_list[6:]
-    russian_letterts_list = ''.join(russian_letterts_list)
+    russian_letterts_list = ''.join(russian_letterts_list[0:6] + ['Ёё'] + russian_letterts_list[6:])
     for letter in income_string:
         if letter in russian_letterts_list:
             return True
         else:
-            return False
+            continue
+    return False
+
 
 def translate_info_from_doc(file_name, user_dict):
     def translate_str(str_from_data_file, user_dict):
@@ -70,14 +71,15 @@ def translate_info_from_doc(file_name, user_dict):
         for i in range(len(list_to_translate)):
             for j in range(len(user_dict)):
                 list_to_translate[i] = list_to_translate[i].replace(user_dict[j][0], user_dict[j][1])
-            if russian_language_check(list_to_translate):
-                list_to_translate = origin_list
-            if list_to_translate != origin_list:
+            if russian_language_check(list_to_translate[i]):
+                list_to_translate[i] = origin_list[i]
+            if list_to_translate == origin_list:
+                out_list.append(origin_list[i])
+            else:
                 list_to_translate[i] = origin_list[i] + " / " + list_to_translate[i]
                 out_list.append(list_to_translate[i])
-            else:
-                out_list.append(origin_list[i])
         out_list = '\n'.join(out_list)
+
         return out_list
 
     uuid_name = str(uuid.uuid4())
@@ -90,7 +92,7 @@ def translate_info_from_doc(file_name, user_dict):
     shutil.copy(rf"dummy\{file_name}", rf"dummy\{uuid_name}.{extension}")
     book = openpyxl.open(rf"dummy\{uuid_name}.{extension}", read_only=False, data_only=True)
     sheet = book.active
-    for row in range(2, sheet.max_row):
+    for row in range(1, sheet.max_row+1):
         for cell in range(1, sheet.max_column):
             if isinstance(sheet[row][cell].value, str):
                 sheet[row][cell].value = translate_str(sheet[row][cell].value, user_dict)
