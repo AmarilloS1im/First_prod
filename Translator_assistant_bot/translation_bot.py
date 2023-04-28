@@ -5,6 +5,7 @@ import csv
 import openpyxl
 import shutil
 import emoji
+from numerals_translate import *
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
@@ -53,7 +54,7 @@ class Dictionary:
 
 # region Translation Block
 def russian_language_check(income_string):
-    russian_letterts_list = [chr(i).upper() + chr(i) for i in range(ord('а'),ord('я')+1)]
+    russian_letterts_list = [chr(i).upper() + chr(i) for i in range(ord('а'), ord('я') + 1)]
     russian_letterts_list = ''.join(russian_letterts_list[0:6] + ['Ёё'] + russian_letterts_list[6:])
     for letter in income_string:
         if letter in russian_letterts_list:
@@ -69,6 +70,13 @@ def translate_info_from_doc(file_name, user_dict):
         list_to_translate = str_from_data_file.split('\n')
         origin_list = str_from_data_file.split('\n')[:]
         for i in range(len(list_to_translate)):
+            if find_numerals(list_to_translate[i]) != False:
+                list_to_translate[i] = list_to_translate[i].replace(find_numerals(list_to_translate[i]),
+                                       from_int_to_numeral_en(from_numeral_to_int(find_numerals(list_to_translate[i]))))
+                list_to_translate[i] = list_to_translate[i].replace(find_cents(list_to_translate[i]),
+                                                                    rf'and {find_cents(list_to_translate[i])[:2]}/100 ')
+            else:
+                pass
             for j in range(len(user_dict)):
                 list_to_translate[i] = list_to_translate[i].replace(user_dict[j][0], user_dict[j][1])
             if russian_language_check(list_to_translate[i]):
@@ -92,7 +100,7 @@ def translate_info_from_doc(file_name, user_dict):
     shutil.copy(rf"dummy\{file_name}", rf"dummy\{uuid_name}.{extension}")
     book = openpyxl.open(rf"dummy\{uuid_name}.{extension}", read_only=False, data_only=True)
     sheet = book.active
-    for row in range(1, sheet.max_row+1):
+    for row in range(1, sheet.max_row + 1):
         for cell in range(1, sheet.max_column):
             if isinstance(sheet[row][cell].value, str):
                 sheet[row][cell].value = translate_str(sheet[row][cell].value, user_dict)
