@@ -28,7 +28,7 @@ class Dictionary:
     @property
     def main_dict(self):
         my_dict = []
-        with open(rf"dummy\main_dict.csv") as r_file:
+        with open(rf"dummy/main_dict.csv", encoding="utf-8-sig") as r_file:
             file_reader = csv.reader(r_file, delimiter=";")
             for row in file_reader:
                 tmp_dict = [row[0], row[1]]
@@ -38,12 +38,14 @@ class Dictionary:
 
     def set_custom_dict(self, value):
         my_dict = []
-        with open(rf"dummy/{value}", 'r', encoding='utf-8-sig') as r_file:
+        # Problem with "utf - 8 - sig" on Docker container
+        with open(rf"dummy/{value}", 'r',encoding="utf-8-sig") as r_file:
             file_reader = csv.reader(r_file, delimiter=";")
             for row in file_reader:
                 tmp_dict = [row[0], row[1]]
                 my_dict.append(tmp_dict)
         self.__custom_dict = list(sorted(my_dict, key=lambda item: len(item[0]), reverse=True))
+
 
     def get_custom_dict(self):
         return self.__custom_dict
@@ -72,7 +74,8 @@ def translate_info_from_doc(file_name, user_dict):
         for i in range(len(list_to_translate)):
             if find_numerals(list_to_translate[i]) != False:
                 list_to_translate[i] = list_to_translate[i].replace(find_numerals(list_to_translate[i]),
-                                       from_int_to_numeral_en(from_numeral_to_int(find_numerals(list_to_translate[i]))))
+                                                                    from_int_to_numeral_en(from_numeral_to_int(
+                                                                        find_numerals(list_to_translate[i]))))
                 list_to_translate[i] = list_to_translate[i].replace(find_cents(list_to_translate[i]),
                                                                     rf'and {find_cents(list_to_translate[i])[:2]}/100 ')
             else:
@@ -97,21 +100,22 @@ def translate_info_from_doc(file_name, user_dict):
     else:
         uuid_dict[uuid_name] = file_name
     extension = file_name.split('.')[-1]
-    shutil.copy(rf"dummy\{file_name}", rf"dummy\{uuid_name}.{extension}")
-    book = openpyxl.open(rf"dummy\{uuid_name}.{extension}", read_only=False, data_only=True)
+    shutil.copy(rf"dummy/{file_name}", rf"dummy/{uuid_name}.{extension}")
+    book = openpyxl.open(rf"dummy/{uuid_name}.{extension}", read_only=False, data_only=True)
     sheet = book.active
     for row in range(1, sheet.max_row + 1):
         for cell in range(1, sheet.max_column):
             if isinstance(sheet[row][cell].value, str):
+                # print(sheet[row][cell].value)
                 sheet[row][cell].value = translate_str(sheet[row][cell].value, user_dict)
             else:
                 pass
-    book.save(rf"dummy\__Translated__{uuid_dict[uuid_name]}")
+    book.save(rf"dummy/__Translated__{uuid_dict[uuid_name]}")
     book.close()
     if file_name in os.listdir('dummy'):
-        os.remove(rf"dummy\{file_name}")
+        os.remove(rf"dummy/{file_name}")
     if rf"{uuid_name}.{extension}" in os.listdir('dummy'):
-        os.remove(rf"dummy\{uuid_name}.{extension}")
+        os.remove(rf"dummy/{uuid_name}.{extension}")
     return rf"__Translated__{uuid_dict[uuid_name]}"
 
 
@@ -165,8 +169,9 @@ markup_next_doc.add(next_doc_button, button_back)
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
     user_full_name = message.from_user.full_name
+    bot_name = await bot.get_me()
     await message.reply(
-        f"Привет {user_full_name}\nЯ Translator's assistant bot\nЧтобы перевести документ нажми кнопку ПЕРЕВЕСТИ\n"
+        f"Привет {user_full_name}\nЯ {bot_name.first_name}\nЧтобы перевести документ нажми кнопку ПЕРЕВЕСТИ\n"
         f"Чтобы добавить новые или изменить действующие словари нажми кнопку СЛОВАРЬ\n"
         f"Для получения более подробной информации нажми кнопку ПОМОЩЬ",
         reply_markup=markup_start_screen)
@@ -200,7 +205,7 @@ async def load_on_server_file_to_translate(message: types.Message, state: FSMCon
             await FSMAdmin.file_to_translate.set()
             await message.answer('Документ должен быть в формате .xls или .xlsx', reply_markup=markup_back)
         else:
-            await message.document.download(destination_file=rf"dummy\{user_file}")
+            await message.document.download(destination_file=rf"dummy/{user_file}")
             await message.answer('БОТ НАЧАЛ ПЕРВОД ДОКУМЕНТА, ОЖИДАЙТЕ')
             user_dict = Dictionary()
             if rf"{user_id}.csv" in os.listdir('dummy/'):
@@ -257,7 +262,7 @@ async def set_custom_dicts(callback: types.CallbackQuery):
 # region SEND MAIN DICTTO USER BUTTON ACTION
 @dp.callback_query_handler(text='main_dict')
 async def upload_main_dict_to_user(callback: types.CallbackQuery):
-    reply_main_dict = open(r"dummy\main_dict.csv", 'rb')
+    reply_main_dict = open(r"dummy/main_dict.csv", 'rb')
     await callback.message.reply_document(reply_main_dict)
     await callback.answer('Базовый словарь получен')
 
@@ -270,7 +275,7 @@ async def upload_main_dict_to_user(callback: types.CallbackQuery):
 async def restore_dict(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     try:
-        os.remove(rf"dummy\{user_id}.csv")
+        os.remove(rf"dummy/{user_id}.csv")
         await callback.message.answer('ПОЛЬЗОВАТЕЛЬСКИЙ СЛОВАРЬ УДАЛЕН, БАЗОВЫЙ СЛОВАРЬ ВОССТАНОВЛЕН')
     except:
         await callback.message.answer('У ВАС НЕТ ДЕЙСТВУЮЩЕГО ПОЛЬЗОВАТЕЛЬСКОГО СЛОВАРЯ')
@@ -293,7 +298,7 @@ async def load_on_server_dict(message: types.Message, state: FSMContext):
             await FSMAdmin.add_custom_dict.set()
             await message.answer('Файл должен иметь расширение .csv', reply_markup=markup_back)
         else:
-            src = rf"dummy\{user_id}{user_dict_extension}"
+            src = rf"dummy/{user_id}{user_dict_extension}"
             await message.document.download(destination_file=src)
             await message.answer('ВАШ СЛОВАРЬ УСПЕШНО ДОБАВЛЕН,МОЖЕТЕ НАЧАТЬ ПЕРВОД ДОКУМЕНТА')
             await state.finish()
@@ -313,6 +318,7 @@ async def callback_help(callback: types.CallbackQuery):
         'Количество пар(слово ; перевод) не ограниченно. ДОБАВЛЯЙТЕ КАЖДУ НОВУЮ ПАРУ СТРОЧКОЙ НИЖЕ.\n\n'
         '\t\t\t\t\t\t\t\tВНИМАНИЕ!    ATTENTION!     ACHTUNG!    \n\n'
         'ВАШ СЛОВАРЬ ДОЛЖЕН ИМЕТЬ КОДИРОВКУ "utf-8 со спецификацией"\n\n'
+        'В новой версии экселя CSV UTF-8 (разделитель - запятая)(*csv)\n\n'
         'Когда ваш словарь будет готов, загрузите его с помощью кнопки '
         'СЛОВАРИ-->ЗАГРУЗИТЬ ПОЛЬЗОВАТЕЛЬСКИЙ СЛОВАРЬ"\n'
         'Вы также можете расширить базовый словарь путем добавления в него своих слов.\n'
@@ -324,7 +330,10 @@ async def callback_help(callback: types.CallbackQuery):
         'ВНИМАНИЕ!\nПри нажатии на кнопку УДАЛИТЬ ПОЛЬЗОВАТЕЛЬСКИЙ СЛОВОВАРЬ, ваш словарь будет полностью удален.\n'
         'Весь дальнейший первод будет идти на основание базового словаря.\n\n\n'
         'ВНИМАНИЕ!\n\nБот переводит документ построчно, каждую ячейку. Если вы хотите, чтобы ячейка была перведена,'
-        ' в словарь должны быть добавлены все слова, которые встречаются в конкретной ячейке, иначе бот оставит ячейку непереведенной!\n\n\n',
+        ' в словарь должны быть добавлены все слова, которые встречаются в конкретной ячейке, иначе бот оставит ячейку непереведенной!\n\n\n'
+        'Например если у вас есть строка "Реализация товаров и услуг № 20210031 от 11 01 2021", в словаре есть перевод выражения'
+        ' "Реализация товаров и услуг", но нет перевода слова "от", бот не станет переводить строку. Все Русские символы'
+        ', которые есть в ячейке должны быть указаны в словаре.',
         reply_markup=markup_back)
 
 
